@@ -130,7 +130,7 @@ const openAdd = () => {
 const openEdit = async (row: RoleRow) => {
   isEdit.value = true
   try {
-    const result: any = await roles.queryById(row.roleId)
+    const result: any = await roles.queryById(row.roleId ?? '')
     if (result && result.code == 0) {
       Object.assign(form, result.data || row)
     } else {
@@ -169,7 +169,7 @@ const submitForm = async () => {
 
 const handleDelete = async (index: number, row: RoleRow) => {
   try {
-    const result: any = await roles.deleteUser(row.roleId)
+    const result: any = await roles.deleteUser(row.roleId ?? '')
     if (result.code == 0) {
       ElMessage.success('删除成功')
       tableData.value.data.records.splice(index, 1)

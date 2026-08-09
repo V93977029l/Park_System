@@ -1,203 +1,263 @@
-<template>
-  <el-container class="layout">
-    <el-header class="header" style="background-image: url('/header_background.jpg');">
-      <div class="header-left">
-        <el-icon :size="22" color="#409EFF"><HomeFilled /></el-icon>
-        <span class="header-title">智慧停车场管理系统</span>
+﻿<template>
+  <div class="layout-root">
+    <header class="topbar">
+      <div class="topbar__left">
+        <div class="brand">
+          <div class="brand__mark">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+              <path d="M4 4h16v16H4z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
+              <path d="M7 7h4v4H7z" fill="currentColor" opacity="0.85"/>
+              <path d="M13 7h4v4h-4zM7 13h4v4H7zM13 13h4v4h-4z" fill="currentColor" opacity="0.35"/>
+            </svg>
+          </div>
+          <div class="brand__text">
+            <span class="brand__name">智慧停车</span>
+            <span class="brand__sub">SMART PARKING</span>
+          </div>
+        </div>
+
+        <nav class="caps-nav">
+          <button
+            v-for="item in navItems"
+            :key="item.path"
+            class="caps-nav__item"
+            :class="{ 'is-active': isActive(item.path) }"
+            @click="router.push(item.path)"
+          >
+            <el-icon class="caps-nav__ico"><component :is="item.icon" /></el-icon>
+            <span class="caps-nav__label">{{ item.label }}</span>
+            <span v-if="item.badge" class="caps-nav__badge">{{ item.badge }}</span>
+          </button>
+        </nav>
       </div>
-      <div class="header-right">
-        <el-breadcrumb separator="/">
-          <el-breadcrumb-item :to="{ path: '/main/index' }">首页</el-breadcrumb-item>
-          <el-breadcrumb-item>{{ currentTitle }}</el-breadcrumb-item>
-        </el-breadcrumb>
-        <el-dropdown trigger="click" @command="handleCommand">
-          <span class="user-info">
-            <el-avatar :size="28" :src="avatarUrl">
-              <el-icon><User /></el-icon>
-            </el-avatar>
-            <span class="username">{{ username }}</span>
-            <el-icon><CaretBottom /></el-icon>
-          </span>
+
+      <div class="topbar__right">
+        <div class="status-pill">
+          <span class="status-pill__label">在线</span>
+          <span class="status-pill__value">{{ stats.liveParking }}</span>
+        </div>
+        <div class="status-pill">
+          <span class="status-pill__label">今日出场</span>
+          <span class="status-pill__value">{{ stats.todayExit }}</span>
+        </div>
+        <div class="status-pill">
+          <span class="status-pill__label">今日营收</span>
+          <span class="status-pill__value status-pill__value--money">{{ stats.todayRevenue }}</span>
+        </div>
+        <div class="topbar__divider"/>
+        <el-dropdown trigger="click" @command="onUserCmd">
+          <div class="user-chip">
+            <div class="user-chip__avatar"><el-icon><User /></el-icon></div>
+            <div class="user-chip__meta">
+              <div class="user-chip__name">{{ username }}</div>
+              <div class="user-chip__role">{{ roleName }}</div>
+            </div>
+            <el-icon class="user-chip__caret"><ArrowDown /></el-icon>
+          </div>
           <template #dropdown>
             <el-dropdown-menu>
-              <el-dropdown-item command="profile">
-                <el-icon><UserFilled /></el-icon>个人中心
-              </el-dropdown-item>
-              <el-dropdown-item command="logout" divided>
-                <el-icon><SwitchButton /></el-icon>退出登录
-              </el-dropdown-item>
+              <el-dropdown-item command="profile"><el-icon><Setting /></el-icon>账号设置</el-dropdown-item>
+              <el-dropdown-item command="logout" divided><el-icon><SwitchButton /></el-icon>退出登录</el-dropdown-item>
             </el-dropdown-menu>
           </template>
         </el-dropdown>
       </div>
-    </el-header>
+    </header>
 
-    <el-container>
-      <el-aside width="220px" class="aside">
-        <el-menu
-          :default-active="activeMenu"
-          class="menu"
-          :router="true"
-          background-color="#1f2d3d"
-          text-color="#bfcbd9"
-          active-text-color="#409EFF"
-          unique-opened
-        >
-          <el-menu-item index="/main/index">
-            <el-icon><DataAnalysis /></el-icon>
-            <span>工作台首页</span>
-          </el-menu-item>
+    <main class="main-stage">
+      <div class="breadcrumb-row">
+        <div class="breadcrumb-title">
+          <span class="breadcrumb-title__eyebrow">{{ eyebrow }}</span>
+          <h1>{{ pageTitle }}</h1>
+        </div>
+        <div class="breadcrumb-trail">
+          <span class="breadcrumb-trail__item">控制台</span>
+          <span class="breadcrumb-trail__sep">/</span>
+          <span class="breadcrumb-trail__item breadcrumb-trail__item--active">{{ pageTitle }}</span>
+        </div>
+      </div>
 
-          <el-sub-menu index="park">
-            <template #title>
-              <el-icon><OfficeBuilding /></el-icon>
-              <span>停车场管理</span>
-            </template>
-            <el-menu-item index="/main/parks">
-              <el-icon><Place /></el-icon>
-              <span>停车场管理</span>
-            </el-menu-item>
-            <el-menu-item index="/main/slots">
-              <el-icon><Grid /></el-icon>
-              <span>车位管理</span>
-            </el-menu-item>
-          </el-sub-menu>
-
-          <el-sub-menu index="biz">
-            <template #title>
-              <el-icon><Tickets /></el-icon>
-              <span>收费业务</span>
-            </template>
-            <el-menu-item index="/main/entry">
-              <el-icon><CirclePlus /></el-icon>
-              <span>车辆入场</span>
-            </el-menu-item>
-            <el-menu-item index="/main/exit">
-              <el-icon><CircleClose /></el-icon>
-              <span>车辆出场</span>
-            </el-menu-item>
-            <el-menu-item index="/main/records">
-              <el-icon><Document /></el-icon>
-              <span>收费记录</span>
-            </el-menu-item>
-          </el-sub-menu>
-
-          <el-sub-menu index="auth">
-            <template #title>
-              <el-icon><Setting /></el-icon>
-              <span>系统管理</span>
-            </template>
-            <el-menu-item index="/main/users">
-              <el-icon><User /></el-icon>
-              <span>用户列表</span>
-            </el-menu-item>
-            <el-menu-item index="/main/roles">
-              <el-icon><UserFilled /></el-icon>
-              <span>角色列表</span>
-            </el-menu-item>
-          </el-sub-menu>
-        </el-menu>
-      </el-aside>
-
-      <el-main class="main">
-        <router-view v-slot="{ Component }">
-          <transition name="fade" mode="out-in">
-            <component :is="Component" />
+      <section class="content-area">
+        <router-view v-slot="{ Component, route }">
+          <transition name="page-fade" mode="out-in">
+            <component :is="Component" :key="route.fullPath" />
           </transition>
         </router-view>
-      </el-main>
-    </el-container>
-  </el-container>
+      </section>
+    </main>
+  </div>
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
-import { ElMessageBox, ElMessage } from 'element-plus'
+import { computed, reactive, ref } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
 import {
-  HomeFilled, User, UserFilled, SwitchButton, CaretBottom,
-  OfficeBuilding, Place, Grid, Tickets, CirclePlus, CircleClose, Document, Setting, DataAnalysis
+  HomeFilled, OfficeBuilding, Grid, Tickets,
+  User, Setting, ArrowDown, SwitchButton, Location
 } from '@element-plus/icons-vue'
 
-const route = useRoute()
 const router = useRouter()
+const route = useRoute()
 
-const username = ref(sessionStorage.getItem('username') || '管理员')
-const avatarUrl = ref('')
+const username = ref(localStorage.getItem('park_username') || 'admin')
+const roleName = ref(localStorage.getItem('park_role') || '系统管理员')
 
-const menus = [
-  '/main/index',
-  '/main/parks', '/main/slots',
-  '/main/entry', '/main/exit', '/main/records',
-  '/main/users', '/main/roles'
+const stats = reactive({ liveParking: 186, todayExit: 73, todayRevenue: '28,460' })
+
+const navItems = [
+  { path: '/main/index',      label: '总览',     icon: HomeFilled },
+  { path: '/main/parks',      label: '停车场',   icon: OfficeBuilding },
+  { path: '/main/slots',      label: '车位',     icon: Grid },
+  { path: '/main/entry-exit', label: '进出厂',   icon: Location, badge: '3' },
+  { path: '/main/records',    label: '收费记录', icon: Tickets }
 ]
 
-const activeMenu = computed(() => {
-  if (menus.includes(route.path)) return route.path
-  return '/main/index'
-})
-
-const menuTitleMap: Record<string, string> = {
-  '/main/index': '工作台首页',
-  '/main/parks': '停车场管理',
-  '/main/slots': '车位管理',
-  '/main/entry': '车辆入场',
-  '/main/exit': '车辆出场',
-  '/main/records': '收费记录',
-  '/main/users': '用户列表',
-  '/main/roles': '角色列表'
+const routeTitle: Record<string, { eyebrow: string; title: string }> = {
+  '/main/index':      { eyebrow: 'OVERVIEW',     title: '运营总览' },
+  '/main/parks':      { eyebrow: 'PARK LOTS',    title: '停车场管理' },
+  '/main/slots':      { eyebrow: 'SLOTS',        title: '车位总览' },
+  '/main/entry':      { eyebrow: 'ENTRY',        title: '车辆入场' },
+  '/main/exit':       { eyebrow: 'EXIT',         title: '车辆出场' },
+  '/main/entry-exit': { eyebrow: 'FLOW',         title: '车辆出入厂' },
+  '/main/records':    { eyebrow: 'RECORDS',      title: '收费记录' },
+  '/main/users':      { eyebrow: 'USERS',        title: '用户管理' },
+  '/main/roles':      { eyebrow: 'ROLES',        title: '角色管理' }
 }
 
-const currentTitle = computed(() => menuTitleMap[route.path] || '首页')
+const matchSeg = (full: string, p: string) => full === p || full.startsWith(p + '/')
+const isActive = (p: string) => matchSeg(route.path, p)
+const pageTitle = computed(() => routeTitle[route.path]?.title ?? '控制台')
+const eyebrow   = computed(() => routeTitle[route.path]?.eyebrow ?? 'CONSOLE')
 
-const handleCommand = async (cmd: string) => {
-  if (cmd === 'profile') {
-    ElMessage.info('个人中心功能开发中')
-  } else if (cmd === 'logout') {
-    try {
-      await ElMessageBox.confirm('确认退出登录？', '提示', {
-        confirmButtonText: '确认',
-        cancelButtonText: '取消',
-        type: 'warning'
-      })
-      sessionStorage.removeItem('username')
-      ElMessage.success('已退出登录')
-      router.replace('/login')
-    } catch {
-      // cancel
-    }
+const onUserCmd = (cmd: string) => {
+  if (cmd === 'logout') {
+    localStorage.removeItem('park_token')
+    localStorage.removeItem('park_username')
+    localStorage.removeItem('park_role')
+    router.push('/login')
+  } else if (cmd === 'profile') {
+    router.push('/main/users')
   }
 }
 </script>
 
-<style scoped lang="scss">
-.layout { height: 100vh; }
+<style scoped>
+.layout-root {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--app-bg);
+}
 
-.header {
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  height: 60px;
+  padding: 0 24px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background: #fff center/cover no-repeat;
-  background-blend-mode: overlay;
-  background-color: rgba(255, 255, 255, 0.85);
-  border-bottom: 1px solid #e4e7ed;
-  padding: 0 20px;
-  height: 60px;
-  box-sizing: border-box;
+  background: rgba(255,255,255,0.85);
+  backdrop-filter: saturate(160%) blur(14px);
+  -webkit-backdrop-filter: saturate(160%) blur(14px);
+  border-bottom: 1px solid rgba(0,0,0,0.06);
+  gap: 16px;
 }
-.header-left { display: flex; align-items: center; gap: 10px; }
-.header-title { font-size: 18px; font-weight: 600; color: #303133; }
-.header-right { display: flex; align-items: center; gap: 24px; }
-.user-info {
-  display: inline-flex; align-items: center; gap: 8px; cursor: pointer;
-  padding: 6px 12px; border-radius: 4px; transition: background 0.2s;
-  &:hover { background: #f2f6fc; }
-}
-.username { color: #303133; font-size: 14px; }
-.aside { background-color: #1f2d3d; overflow-y: auto; }
-.menu { border-right: none; }
-.main { background-color: #f0f2f5; padding: 16px; overflow-y: auto; }
+.topbar__left  { display: flex; align-items: center; gap: 20px; flex: 0 0 auto; }
+.topbar__right { display: flex; align-items: center; gap: 10px; flex: 0 0 auto; }
 
-.fade-enter-active, .fade-leave-active { transition: opacity 0.18s ease; }
-.fade-enter-from, .fade-leave-to { opacity: 0; }
+.brand { display: flex; align-items: center; gap: 10px; flex: 0 0 auto; }
+.brand__mark {
+  width: 34px; height: 34px; border-radius: 10px;
+  background: linear-gradient(135deg, #2f6fff, #6aa3ff); color: #fff;
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 4px 12px rgba(47,111,255,0.25); flex: 0 0 auto;
+}
+.brand__text { line-height: 1.15; flex: 0 0 auto; }
+.brand__name { font-size: 14px; font-weight: 700; color: var(--app-text-1); letter-spacing: 0.02em; white-space: nowrap; }
+.brand__sub  { font-size: 10px; font-weight: 600; color: var(--app-text-3); letter-spacing: 0.14em; white-space: nowrap; }
+
+.caps-nav {
+  display: flex; align-items: center;
+  background: rgba(0,0,0,0.03);
+  border: 1px solid rgba(0,0,0,0.06);
+  border-radius: 999px;
+  padding: 4px;
+  gap: 4px;
+  flex: 0 0 auto;
+}
+.caps-nav__item {
+  all: unset; cursor: pointer;
+  height: 36px; padding: 0 16px; border-radius: 999px;
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 13px; font-weight: 500;
+  color: var(--app-text-2);
+  transition: background var(--app-transition), color var(--app-transition), box-shadow var(--app-transition);
+  white-space: nowrap; flex: 0 0 auto;
+}
+.caps-nav__ico { font-size: 14px; }
+.caps-nav__item:hover { color: var(--app-text-1); background: rgba(255,255,255,0.6); }
+.caps-nav__item.is-active {
+  background: #fff; color: var(--app-accent);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.06), 0 2px 8px rgba(0,0,0,0.05);
+}
+.caps-nav__badge {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 16px; height: 16px; padding: 0 5px; border-radius: 999px;
+  font-size: 10px; font-weight: 700; color: #fff; background: var(--app-danger); margin-left: 2px;
+}
+
+.status-pill {
+  display: flex; align-items: center; gap: 8px;
+  height: 32px; padding: 0 12px; border-radius: 999px;
+  background: rgba(0,0,0,0.03); border: 1px solid rgba(0,0,0,0.06);
+  white-space: nowrap; flex: 0 0 auto;
+}
+.status-pill__label { font-size: 11px; color: var(--app-text-3); letter-spacing: 0.02em; white-space: nowrap; }
+.status-pill__value { font-size: 13.5px; font-weight: 700; color: var(--app-text-1); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.status-pill__value--money { color: var(--app-accent); }
+
+.topbar__divider { width: 1px; height: 20px; background: var(--app-border-strong); flex: 0 0 auto; }
+
+.user-chip {
+  cursor: pointer; display: flex; align-items: center; gap: 10px;
+  height: 36px; padding: 4px 8px 4px 4px; border-radius: 999px;
+  transition: background var(--app-transition); flex: 0 0 auto;
+  white-space: nowrap;
+}
+.user-chip:hover { background: rgba(0,0,0,0.04); }
+.user-chip__avatar {
+  width: 30px; height: 30px; border-radius: 999px;
+  background: linear-gradient(135deg, #2f6fff, #6aa3ff); color: #fff;
+  display: flex; align-items: center; justify-content: center; flex: 0 0 auto;
+}
+.user-chip__meta { line-height: 1.2; flex: 0 0 auto; }
+.user-chip__name { font-size: 12.5px; font-weight: 600; color: var(--app-text-1); white-space: nowrap; }
+.user-chip__role { font-size: 10.5px; color: var(--app-text-3); letter-spacing: 0.02em; white-space: nowrap; }
+.user-chip__caret { font-size: 12px; color: var(--app-text-4); flex: 0 0 auto; }
+
+@media (max-width: 1200px) {
+  .caps-nav__item .caps-nav__label { display: none; }
+  .caps-nav__item { padding: 0 12px; }
+}
+@media (max-width: 900px) {
+  .status-pill, .topbar__divider, .user-chip__meta, .user-chip__caret { display: none; }
+}
+
+.main-stage { flex: 1; display: flex; flex-direction: column; padding: 20px 24px 32px; min-height: 0; }
+.breadcrumb-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 18px; flex-wrap: wrap; }
+.breadcrumb-title { display: flex; align-items: baseline; gap: 12px; }
+.breadcrumb-title__eyebrow { font-size: 10px; font-weight: 700; letter-spacing: 0.22em; color: var(--app-text-4); white-space: nowrap; }
+.breadcrumb-title h1 { margin: 0; font-size: 22px; font-weight: 700; letter-spacing: -0.01em; color: var(--app-text-1); white-space: nowrap; }
+.breadcrumb-trail { font-size: 12px; color: var(--app-text-3); display: flex; align-items: center; gap: 6px; white-space: nowrap; }
+.breadcrumb-trail__sep { color: var(--app-text-4); }
+.breadcrumb-trail__item--active { color: var(--app-text-1); font-weight: 500; }
+@media (max-width: 820px) { .breadcrumb-trail { display: none; } }
+
+.content-area { flex: 1; min-height: 0; }
+
+.page-fade-enter-active, .page-fade-leave-active { transition: opacity 180ms ease, transform 180ms ease; }
+.page-fade-enter-from { opacity: 0; transform: translateY(4px); }
+.page-fade-leave-to   { opacity: 0; transform: translateY(-3px); }
 </style>

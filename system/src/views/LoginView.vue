@@ -143,7 +143,8 @@ const handlerLogin = async () => {
     loginLoading.value = true
     try {
       ElMessage.success(`欢迎回来，${form.name}`)
-      sessionStorage.setItem('username', form.name)
+      localStorage.setItem('park_token', 'demo-token-' + Date.now())
+      localStorage.setItem('park_username', form.name)
       router.push('/main/index')
     } finally {
       loginLoading.value = false

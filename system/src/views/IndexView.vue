@@ -1,464 +1,683 @@
 <template>
-  <div class="workbench">
-    <section class="hero">
-      <div class="hero-left">
-        <div class="hero-title">智慧停车场指挥中心 · 运营态势总览</div>
-        <div class="hero-sub">实时车流 · 智能引导 · 无感支付</div>
-      </div>
-      <div class="hero-right">
-        <div class="hero-stat" v-for="s in heroStats" :key="s.label">
-          <div class="hero-stat-value">
-            <span v-if="s.symbol" class="hero-symbol">{{ s.symbol }}</span>{{ s.value }}
-          </div>
-          <div class="hero-stat-label">{{ s.label }}</div>
+  <div class="cockpit">
+    <div class="hero">
+      <div class="hero__bg"/>
+      <div class="hero__inner">
+        <div class="hero__copy">
+          <div class="hero__eyebrow">LIVE DASHBOARD · {{ todayLabel }}</div>
+          <h2 class="hero__title">6 座停车场 · 3,200 泊位</h2>
+          <p class="hero__desc">实时总览各场地利用率与车流走势，支持一键直达核心业务界面。</p>
         </div>
-      </div>
-      <div class="hero-foot">
-        <span class="hero-foot-item">{{ now }}</span>
-        <span class="hero-foot-divider">|</span>
-        <span class="hero-foot-item">晴 {{ 22 }}℃ · 微风 2级</span>
-      </div>
-    </section>
-
-    <el-row :gutter="12" class="kpi-row">
-      <el-col :span="4" v-for="k in kpis" :key="k.label">
-        <el-card class="kpi-card" shadow="hover">
-          <div class="kpi-inner">
-            <div class="kpi-icon" :style="{ background: k.bg, color: k.color }">
-              <el-icon :size="26"><component :is="iconMap[k.icon]" /></el-icon>
-            </div>
-            <div class="kpi-body">
-              <div class="kpi-value">
-                <span v-if="k.symbol" class="kpi-symbol">{{ k.symbol }}</span>{{ k.value }}
-              </div>
-              <div class="kpi-label">{{ k.label }}</div>
-              <div class="kpi-trend" :class="k.trendUp ? 'up' : 'down'">
-                <el-icon><component :is="k.trendUp ? 'Top' : 'Bottom'" /></el-icon>
-                比昨日 {{ k.trend }}
-              </div>
-            </div>
+        <div class="hero__live">
+          <div class="hero__live-head">
+            <span class="hero__live-dot"/>
+            <span class="hero__live-label">实时</span>
           </div>
-        </el-card>
-      </el-col>
-    </el-row>
-
-    <section class="section">
-      <div class="section-title">停车场实时总览</div>
-      <div class="parks-grid">
-        <div class="park-card" v-for="p in parks" :key="p.id">
-          <div class="park-gauge">
-            <div class="park-mini" :id="'gauge-' + p.id"></div>
-          </div>
-          <div class="park-info">
-            <div class="park-name">{{ p.name }}</div>
-            <div class="park-sub">
-              <span class="park-sub-item" :class="p.todayIn - p.todayOut >= 0 ? 'up' : 'down'">
-                今日车流 {{ p.todayIn - p.todayOut >= 0 ? '+' : '' }}{{ p.todayIn - p.todayOut }}
-              </span>
+          <div class="hero__live-grid">
+            <div class="hero__live-cell">
+              <div class="hero__live-k">当前在场</div>
+              <div class="hero__live-v">186</div>
+              <div class="hero__live-chg hero__live-chg--up">+12</div>
             </div>
-            <div class="park-sub">
-              <span class="park-sub-item">当前车位 {{ p.free }} / {{ p.total }}</span>
+            <div class="hero__live-cell">
+              <div class="hero__live-k">空闲车位</div>
+              <div class="hero__live-v">2,914</div>
+              <div class="hero__live-chg hero__live-chg--down">-4</div>
+            </div>
+            <div class="hero__live-cell">
+              <div class="hero__live-k">平均时长</div>
+              <div class="hero__live-v">42<span class="hero__live-unit">min</span></div>
+              <div class="hero__live-chg">≈ 持平</div>
+            </div>
+            <div class="hero__live-cell">
+              <div class="hero__live-k">车位利用率</div>
+              <div class="hero__live-v">5.8<span class="hero__live-unit">%</span></div>
             </div>
           </div>
         </div>
       </div>
-      <div class="events-bar">
-        <div class="events-scroll" :style="{ animationDuration: events.length * 2 + 's' }">
-          <div class="events-track" ref="eventsTrack">
-            <span class="event" v-for="(e, idx) in eventsLoop" :key="idx">
-              <span class="event-dot" :class="'dot-' + e.type"></span>
-              <span class="event-time">{{ e.time }}</span>
-              <span class="event-text" :class="'text-' + e.type">{{ e.text }}</span>
-            </span>
+    </div>
+
+    <div class="stats-grid">
+      <div
+        v-for="s in stats"
+        :key="s.title"
+        class="stat-card"
+        @click="s.path && router.push(s.path)"
+        :class="{ 'stat-card--link': !!s.path }"
+      >
+        <div class="stat-card__head">
+          <div class="stat-card__label">
+            <span>{{ s.title }}</span>
+            <el-icon v-if="s.path" class="stat-card__goto"><ArrowRight /></el-icon>
+          </div>
+          <el-icon class="stat-card__ico" :style="{ background: s.soft, color: s.color }">
+            <component :is="s.icon" />
+          </el-icon>
+        </div>
+        <div class="stat-card__value">{{ s.value }}</div>
+        <div class="stat-card__sub">
+          <span class="stat-card__tag" :class="s.tagType">{{ s.tag }}</span>
+          <span>{{ s.sub }}</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="panels">
+      <div class="panel panel--lg">
+        <div class="panel__head">
+          <div class="panel__title">
+            <span class="panel__dot"/>
+            <span>本周车辆进出趋势</span>
+          </div>
+          <div class="panel__legend">
+            <span><i style="background:var(--app-accent)"/>出场</span>
+            <span><i style="background:#b8bdd0"/>入场</span>
+            <span><i style="background:#2bbf8a"/>营收(千)</span>
+          </div>
+        </div>
+        <div ref="trendRef" class="panel__chart"/>
+      </div>
+
+      <div class="panel panel--sm">
+        <div class="panel__head">
+          <div class="panel__title">
+            <span class="panel__dot"/>
+            <span>今日收费构成</span>
+          </div>
+        </div>
+        <div ref="pieRef" class="panel__chart panel__chart--pie"/>
+      </div>
+
+      <div class="panel panel--lg">
+        <div class="panel__head">
+          <div class="panel__title">
+            <span class="panel__dot"/>
+            <span>实时在场车辆</span>
+            <span class="panel__title-sub">· 最近 10 条入场</span>
+          </div>
+          <el-button link type="primary" @click="router.push('/main/entry')">
+            全部入口 <el-icon><ArrowRight /></el-icon>
+          </el-button>
+        </div>
+        <div class="live-rows">
+          <div v-for="row in liveRows" :key="row.plate" class="live-row">
+            <div class="live-row__plate">{{ row.plate }}</div>
+            <div class="live-row__pill" :class="row.pill">{{ row.tag }}</div>
+            <div class="live-row__park">{{ row.park }}</div>
+            <div class="live-row__time">{{ row.time }}</div>
           </div>
         </div>
       </div>
-    </section>
 
-    <el-row :gutter="12" class="charts-row">
-      <el-col :span="14">
-        <el-card class="chart-card" shadow="hover">
-          <template #header>
-            <span class="chart-title">12月车流&营收趋势</span>
-          </template>
-          <div ref="trendChartRef" style="width:100%; height:320px"></div>
-        </el-card>
-      </el-col>
-      <el-col :span="10">
-        <el-card class="chart-card" shadow="hover">
-          <template #header>
-            <span class="chart-title">今日收费构成</span>
-          </template>
-          <div ref="pieChartRef" style="width:100%; height:320px"></div>
-        </el-card>
-      </el-col>
-    </el-row>
+      <div class="panel panel--sm">
+        <div class="panel__head">
+          <div class="panel__title">
+            <span class="panel__dot"/>
+            <span>各场地占用</span>
+          </div>
+        </div>
+        <div class="park-bars">
+          <div v-for="p in parkBars" :key="p.name" class="park-bar">
+            <div class="park-bar__label">
+              <span class="park-bar__name">{{ p.name }}</span>
+              <span class="park-bar__nums">{{ p.used }}/{{ p.total }}</span>
+            </div>
+            <div class="park-bar__track">
+              <div class="park-bar__fill" :style="{ width: p.pct + '%', background: p.color }"/>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="quick-bar">
+      <div class="quick-bar__tip">快速通道</div>
+      <div class="quick-bar__items">
+        <button v-for="q in quick" :key="q.path" class="quick-bar__btn" @click="router.push(q.path)">
+          <el-icon class="quick-bar__ico" :style="{ background: q.soft, color: q.color }"><component :is="q.icon"/></el-icon>
+          <span>{{ q.label }}</span>
+          <el-icon class="quick-bar__arrow"><ArrowRight /></el-icon>
+        </button>
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, reactive, ref } from 'vue'
+import { onMounted, onBeforeUnmount, ref, h } from 'vue'
+import { useRouter } from 'vue-router'
 import * as echarts from 'echarts'
-import { ElMessage } from 'element-plus'
 import {
-  CircleCheck, Warning, CircleClose, Van, Monitor, Coin, DataLine,
-  Lightning, OfficeBuilding, Opportunity, Timer, TrendCharts, ScaleToOriginal, Tickets
+  ArrowRight, Location, ScaleToOriginal, Tickets, Grid, OfficeBuilding, Timer, Wallet, Coin
 } from '@element-plus/icons-vue'
 
-const iconMap: { [k: string]: any } = {
-  Van,
-  Monitor,
-  Coin,
-  DataLine,
-  Lightning,
-  OfficeBuilding,
-  Opportunity,
-  Timer,
-  TrendCharts,
-  ScaleToOriginal,
-  Tickets,
-  CircleCheck,
-  Warning,
-  CircleClose,
-  Top: 'Top',
-  Bottom: 'Bottom'
-}
+const router = useRouter()
+const trendRef = ref<HTMLElement>()
+const pieRef = ref<HTMLElement>()
+let trendChart: echarts.ECharts | null = null
+let pieChart: echarts.ECharts | null = null
 
-const heroStats = [
-  { label: '今日入场', value: '1,658', symbol: '' },
-  { label: '今日出场', value: '1,534', symbol: '' },
-  { label: '今日营收', value: '68,200', symbol: '¥' }
-]
-
-const kpis = [
-  { label: '运营停车场', value: '12', icon: 'OfficeBuilding', bg: '#ecf5ff', color: '#409EFF', trend: '+3.2%', trendUp: true, symbol: '' },
-  { label: '总车位', value: '3,600', icon: 'Opportunity', bg: '#f0f9eb', color: '#67C23A', trend: '+1.5%', trendUp: true, symbol: '' },
-  { label: '在库车辆', value: '2,486', icon: 'Van', bg: '#fdf6ec', color: '#E6A23C', trend: '+5.8%', trendUp: true, symbol: '' },
-  { label: '今日车流', value: '3,192', icon: 'TrendCharts', bg: '#e6fffb', color: '#06b6d4', trend: '+2.1%', trendUp: true, symbol: '' },
-  { label: '今日营收', value: '68,200', icon: 'Coin', bg: '#fff3e0', color: '#f97316', trend: '+8.6%', trendUp: true, symbol: '¥' },
-  { label: '在线率', value: '98.5%', icon: 'Monitor', bg: '#f3e8ff', color: '#a855f7', trend: '-0.2%', trendUp: false, symbol: '' }
-]
-
-const parks = [
-  { id: '1', name: '国贸', rate: 62, free: 120, total: 320, todayIn: 826, todayOut: 803, trend: '+23' },
-  { id: '2', name: '金融街', rate: 88, free: 24, total: 200, todayIn: 512, todayOut: 527, trend: '-15' },
-  { id: '3', name: '科技园', rate: 55, free: 160, total: 360, todayIn: 408, todayOut: 399, trend: '+9' },
-  { id: '4', name: '万象城', rate: 78, free: 76, total: 350, todayIn: 621, todayOut: 605, trend: '+16' },
-  { id: '5', name: '高铁站', rate: 45, free: 260, total: 470, todayIn: 712, todayOut: 690, trend: '+22' },
-  { id: '6', name: '机场T3', rate: 68, free: 210, total: 660, todayIn: 915, todayOut: 880, trend: '+35' },
-  { id: '7', name: '万达广场', rate: 72, free: 112, total: 400, todayIn: 550, todayOut: 541, trend: '+9' },
-  { id: '8', name: '人民广场', rate: 95, free: 15, total: 300, todayIn: 421, todayOut: 433, trend: '-12' },
-  { id: '9', name: '奥体中心', rate: 38, free: 285, total: 460, todayIn: 218, todayOut: 210, trend: '+8' },
-  { id: '10', name: '软件园', rate: 82, free: 66, total: 360, todayIn: 396, todayOut: 382, trend: '+14' },
-  { id: '11', name: '大学城', rate: 52, free: 184, total: 380, todayIn: 352, todayOut: 346, trend: '+6' },
-  { id: '12', name: '会展中心', rate: 75, free: 98, total: 390, todayIn: 618, todayOut: 602, trend: '+16' }
-]
-
-const events = [
-  { time: '15:32', type: 'in', text: '国贸 A层 车牌 京A·88xxx 已入场 [车牌识别]' },
-  { time: '15:30', type: 'warn', text: '金融街 B层 车位 B-012 传感器离线' },
-  { time: '15:28', type: 'in', text: '科技园 C层 车牌 沪B·66xxx 已出场 [无感支付] ¥18' },
-  { time: '15:26', type: 'err', text: '万象城 A层 闸机 3号 异常 [已告警]' },
-  { time: '15:24', type: 'in', text: '高铁站 负一 车牌 粤A·12xxx 已入场 [车牌识别]' },
-  { time: '15:22', type: 'in', text: '机场T3 东 车牌 浙C·55xxx 已出场 [无感支付] ¥42' },
-  { time: '15:20', type: 'warn', text: '万达广场 A层 余位 < 10 [预警]' },
-  { time: '15:18', type: 'in', text: '人民广场 B层 车牌 苏A·23xxx 已入场 [车牌识别]' },
-  { time: '15:16', type: 'in', text: '奥体中心 主 车牌 京C·77xxx 已出场 [无感支付] ¥12' },
-  { time: '15:14', type: 'err', text: '软件园 B层 摄像头 离线 [已告警]' },
-  { time: '15:12', type: 'in', text: '大学城 北 车牌 鄂A·90xxx 已入场 [车牌识别]' },
-  { time: '15:10', type: 'warn', text: '会展中心 东 充电枪 8号 过载 [已处理]' },
-  { time: '15:08', type: 'in', text: '国贸 A层 车牌 京A·34xxx 已出场 [无感支付] ¥28' },
-  { time: '15:06', type: 'in', text: '金融街 B层 车牌 沪A·11xxx 已入场 [车牌识别]' },
-  { time: '15:04', type: 'in', text: '科技园 C层 车牌 粤B·45xxx 已入场 [车牌识别]' }
-]
-
-const months = ['1月', '2月', '3月', '4月', '5月', '6月', '7月', '8月', '9月', '10月', '11月', '12月']
-const trafficIn = [3200, 3500, 4100, 4300, 4800, 5600, 6200, 6800, 5800, 4900, 3800, 3500]
-const trafficOut = [3180, 3480, 4060, 4280, 4760, 5580, 6150, 6780, 5790, 4880, 3790, 3480]
-const revenue = [156, 168, 196, 208, 234, 286, 312, 346, 298, 254, 198, 182]
-
-const chargePie = [
-  { value: 28600, name: '临停', itemStyle: { color: '#409EFF' } },
-  { value: 19800, name: '月卡', itemStyle: { color: '#67C23A' } },
-  { value: 8200, name: '充电', itemStyle: { color: '#E6A23C' } },
-  { value: 5600, name: '商户', itemStyle: { color: '#F56C6C' } },
-  { value: 6000, name: '其他', itemStyle: { color: '#909399' } }
-]
-
-const trendChartRef = ref<any>(null)
-const pieChartRef = ref<any>(null)
-const eventsTrack = ref<any>(null)
-
-let trendChart: any = null
-let pieChart: any = null
-const gaugeCharts: any[] = []
-
-const eventsLoop = computed(() => [...events, ...events])
-
-const now = reactive({ value: '' })
-const updateClock = () => {
+const todayLabel = (() => {
   const d = new Date()
-  const pad = (n: number) => (n < 10 ? '0' + n : n)
-  const w = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'][d.getDay()]
-  now.value = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())} ${w}`
-}
-let timer: any = null
+  const w = ['日','一','二','三','四','五','六'][d.getDay()]
+  return `${d.getMonth()+1}月${d.getDate()}日 · 周${w}`
+})()
 
-const rateColor = (r: number) => (r < 70 ? '#67C23A' : r < 90 ? '#E6A23C' : '#F56C6C')
+const stats = [
+  { title: '运营停车场', value: '6', sub: '较昨日 +1', tag: '+17%', tagType: 'up', icon: OfficeBuilding, color: '#2f6fff', soft: 'rgba(47,111,255,0.08)', path: '/main/parks' },
+  { title: '车位总数', value: '3,200', sub: '标准+充电+VIP', tag: '稳定', tagType: 'flat', icon: Grid, color: '#6f5cff', soft: 'rgba(111,92,255,0.08)', path: '/main/slots' },
+  { title: '今日入场', value: '85', sub: '实时数据', tag: '+8', tagType: 'up', icon: Location, color: '#2bbf8a', soft: 'rgba(43,191,138,0.08)', path: '/main/entry' },
+  { title: '今日出场', value: '73', sub: '已放行', tag: '+5', tagType: 'up', icon: ScaleToOriginal, color: '#f0a84a', soft: 'rgba(240,168,74,0.08)', path: '/main/exit' },
+  { title: '今日营收', value: '¥28,460', sub: '现金/微信/支付宝/月卡', tag: '+12.4%', tagType: 'up', icon: Wallet, color: '#2f6fff', soft: 'rgba(47,111,255,0.08)', path: '/main/records' },
+  { title: '平均停车时长', value: '42 min', sub: '环比 -3 min', tag: '持平', tagType: 'flat', icon: Timer, color: '#8b909c', soft: 'rgba(139,144,156,0.08)' }
+]
 
-const initGauge = (p: any) => {
-  const el = document.getElementById('gauge-' + p.id)
-  if (!el) return
-  const g = echarts.init(el)
-  gaugeCharts.push(g)
-  g.setOption({
+const quick = [
+  { label: '车辆入场', path: '/main/entry', icon: Location, color: '#2bbf8a', soft: 'rgba(43,191,138,0.08)' },
+  { label: '车辆出场', path: '/main/exit', icon: ScaleToOriginal, color: '#f0a84a', soft: 'rgba(240,168,74,0.08)' },
+  { label: '收费记录', path: '/main/records', icon: Tickets, color: '#2f6fff', soft: 'rgba(47,111,255,0.08)' },
+  { label: '停车场', path: '/main/parks', icon: OfficeBuilding, color: '#6f5cff', soft: 'rgba(111,92,255,0.08)' },
+  { label: '车位总览', path: '/main/slots', icon: Grid, color: '#8b909c', soft: 'rgba(139,144,156,0.08)' }
+]
+
+const liveRows = [
+  { plate: '京B·A8888', tag: 'VIP', pill: 'pill--vip', park: '主楼P1', time: '10:32 入场' },
+  { plate: '沪A·66V3K', tag: '月卡', pill: 'pill--month', park: '东广场P2', time: '10:28 入场' },
+  { plate: '粤B·8F21D', tag: '临时', pill: 'pill--temp', park: '地下B1', time: '10:21 入场' },
+  { plate: '苏E·77H8L', tag: '临时', pill: 'pill--temp', park: '主楼P1', time: '10:15 入场' },
+  { plate: '浙A·33Q9M', tag: '充电', pill: 'pill--ev', park: '西充电区', time: '10:10 入场' },
+  { plate: '京A·8888W', tag: 'VIP', pill: 'pill--vip', park: '主楼P1', time: '09:58 入场' },
+  { plate: '沪B·22D6T', tag: '月卡', pill: 'pill--month', park: '东广场P2', time: '09:52 入场' },
+  { plate: '粤A·55H2C', tag: '临时', pill: 'pill--temp', park: '地下B2', time: '09:43 入场' },
+  { plate: '京G·9K91M', tag: '充电', pill: 'pill--ev', park: '西充电区', time: '09:36 入场' },
+  { plate: '沪C·3R22Q', tag: '月卡', pill: 'pill--month', park: '地下B1', time: '09:20 入场' }
+]
+
+const parkBars = [
+  { name: '主楼P1', used: 78, total: 500, pct: 15.6, color: '#2f6fff' },
+  { name: '东广场P2', used: 42, total: 320, pct: 13.1, color: '#6f5cff' },
+  { name: '地下B1', used: 34, total: 800, pct: 4.3,  color: '#2bbf8a' },
+  { name: '地下B2', used: 18, total: 800, pct: 2.3,  color: '#f0a84a' },
+  { name: '西充电区', used: 12, total: 180, pct: 6.7,  color: '#2f6fff' },
+  { name: 'VIP专属', used: 2, total: 200, pct: 1.0,  color: '#8b909c' }
+]
+
+const initTrend = () => {
+  if (!trendRef.value) return
+  trendChart = echarts.init(trendRef.value)
+  const days = ['周一','周二','周三','周四','周五','周六','周日']
+  trendChart.setOption({
+    grid: { left: 44, right: 24, top: 32, bottom: 36 },
+    tooltip: { trigger: 'axis', backgroundColor: '#fff', borderColor: '#ececec', textStyle: { color: '#1d1f24', fontSize: 12 } },
+    legend: { show: false },
+    xAxis: {
+      type: 'category',
+      data: days,
+      axisLine: { show: false },
+      axisTick: { show: false },
+      axisLabel: { color: '#8b909c', fontSize: 11 }
+    },
+    yAxis: {
+      type: 'value',
+      axisLine: { show: false },
+      axisTick: { show: false },
+      splitLine: { lineStyle: { color: '#f0f1f4', type: 'dashed' } },
+      axisLabel: { color: '#8b909c', fontSize: 11 }
+    },
     series: [
       {
-        type: 'gauge',
-        startAngle: 200,
-        endAngle: -20,
-        center: ['50%', '55%'],
-        radius: '90%',
-        min: 0,
-        max: 100,
-        splitNumber: 10,
-        progress: { show: true, width: 10, itemStyle: { color: rateColor(p.rate) } },
-        axisLine: { lineStyle: { width: 10, color: [[1, '#eef0f3']] } },
-        pointer: { show: false },
-        axisTick: { show: false },
-        splitLine: { show: false },
-        axisLabel: { show: false },
-        title: { show: false },
-        detail: {
-          offsetCenter: [0, '5%'],
-          formatter: p.rate + '%',
-          fontSize: 14,
-          fontWeight: 700,
-          color: rateColor(p.rate)
+        name: '出场',
+        type: 'bar',
+        barWidth: 10,
+        barGap: '10%',
+        itemStyle: {
+          borderRadius: [5,5,0,0],
+          color: new echarts.graphic.LinearGradient(0,0,0,1,[
+            { offset: 0, color: '#2f6fff' },
+            { offset: 1, color: '#6aa3ff' }
+          ])
         },
-        data: [{ value: p.rate }]
+        data: [62, 54, 71, 68, 82, 96, 73]
+      },
+      {
+        name: '入场',
+        type: 'bar',
+        barWidth: 10,
+        itemStyle: {
+          borderRadius: [5,5,0,0],
+          color: '#dfe2ea'
+        },
+        data: [71, 60, 80, 76, 90, 105, 85]
+      },
+      {
+        name: '营收(千)',
+        type: 'line',
+        smooth: true,
+        symbol: 'circle',
+        symbolSize: 6,
+        lineStyle: { color: '#2bbf8a', width: 2 },
+        itemStyle: { color: '#2bbf8a', borderColor: '#fff', borderWidth: 2 },
+        areaStyle: {
+          color: new echarts.graphic.LinearGradient(0,0,0,1,[
+            { offset: 0, color: 'rgba(43,191,138,0.22)' },
+            { offset: 1, color: 'rgba(43,191,138,0)' }
+          ])
+        },
+        data: [21, 18, 24, 23, 27, 33, 28]
       }
     ]
   })
 }
 
-const trendOption: any = {
-  title: { left: 'center', text: '12月车流 & 营收趋势', textStyle: { fontSize: 14, color: '#303133' } },
-  tooltip: { trigger: 'axis', axisPointer: { type: 'cross' } },
-  legend: { top: 28, data: ['入场', '出场', '营收(千元)'] },
-  grid: { left: 40, right: 50, top: 70, bottom: 30 },
-  xAxis: { type: 'category', data: months, axisTick: { alignWithLabel: true } },
-  yAxis: [
-    { type: 'value', name: '车次', splitLine: { lineStyle: { type: 'dashed' } } },
-    { type: 'value', name: '营收(千元)', splitLine: { show: false } }
-  ],
-  series: [
-    {
-      name: '入场', type: 'bar', stack: 'traffic',
-      data: trafficIn, itemStyle: { color: '#409EFF', borderRadius: [0, 0, 0, 0] }, barWidth: 14
+const initPie = () => {
+  if (!pieRef.value) return
+  pieChart = echarts.init(pieRef.value)
+  pieChart.setOption({
+    tooltip: { trigger: 'item', backgroundColor: '#fff', borderColor: '#ececec', textStyle: { color: '#1d1f24', fontSize: 12 } },
+    legend: {
+      show: true,
+      bottom: 4,
+      left: 'center',
+      itemWidth: 10,
+      itemHeight: 10,
+      textStyle: { color: '#5a6070', fontSize: 11 }
     },
-    {
-      name: '出场', type: 'bar', stack: 'traffic',
-      data: trafficOut, itemStyle: { color: '#67C23A' }, barWidth: 14
-    },
-    {
-      name: '营收(千元)', type: 'line', yAxisIndex: 1, smooth: true,
-      data: revenue, itemStyle: { color: '#F97316' },
-      areaStyle: { color: 'rgba(249,115,22,0.15)' },
-      symbol: 'circle', symbolSize: 6
-    }
-  ]
-}
-
-const pieOption: any = {
-  title: { left: 'center', text: '今日收费构成', textStyle: { fontSize: 14, color: '#303133' } },
-  tooltip: { trigger: 'item', formatter: '{b}: ¥{c} ({d}%)' },
-  legend: { bottom: 0, type: 'scroll' },
-  series: [
-    {
-      name: '收费构成',
+    series: [{
       type: 'pie',
-      radius: ['42%', '72%'],
-      center: ['50%', '48%'],
+      radius: ['56%', '80%'],
+      center: ['50%', '42%'],
       avoidLabelOverlap: true,
-      itemStyle: { borderRadius: 6, borderColor: '#fff', borderWidth: 2 },
-      label: { show: true, formatter: '{b}\n¥{c}', fontSize: 12 },
-      labelLine: { length: 8, length2: 8 },
-      data: chargePie
-    }
-  ]
+      itemStyle: {
+        borderRadius: 6,
+        borderColor: '#fff',
+        borderWidth: 2
+      },
+      label: { show: false },
+      labelLine: { show: false },
+      data: [
+        { name: '微信支付', value: 10420, itemStyle: { color: '#2bbf8a' } },
+        { name: '支付宝', value:  8670, itemStyle: { color: '#2f6fff' } },
+        { name: '现金',    value:  4230, itemStyle: { color: '#f0a84a' } },
+        { name: '月卡抵扣', value:  5140, itemStyle: { color: '#6f5cff' } }
+      ]
+    }]
+  })
 }
 
-const onRes = () => {
+const onResize = () => {
   trendChart?.resize()
   pieChart?.resize()
-  gaugeCharts.forEach((g) => g && g.resize())
 }
 
 onMounted(() => {
-  updateClock()
-  timer = setInterval(updateClock, 1000)
-
-  if (trendChartRef.value) {
-    trendChart = echarts.init(trendChartRef.value)
-    trendChart.setOption(trendOption)
-  }
-  if (pieChartRef.value) {
-    pieChart = echarts.init(pieChartRef.value)
-    pieChart.setOption(pieOption)
-  }
-  parks.forEach((p) => initGauge(p))
-
-  window.addEventListener('resize', onRes)
-
-  ElMessage.success('智慧停车场工作台已就绪')
+  setTimeout(() => { initTrend(); initPie() }, 60)
+  window.addEventListener('resize', onResize)
 })
 
 onBeforeUnmount(() => {
-  clearInterval(timer)
-  window.removeEventListener('resize', onRes)
   trendChart?.dispose()
   pieChart?.dispose()
-  gaugeCharts.forEach((g) => g && g.dispose())
+  window.removeEventListener('resize', onResize)
 })
 </script>
 
-<style scoped lang="scss">
-.workbench { display: flex; flex-direction: column; gap: 14px; padding: 14px; background: #f4f6fa; min-height: 100vh; box-sizing: border-box; }
+<style scoped>
+.cockpit {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
 
 .hero {
   position: relative;
-  border-radius: 10px;
-  padding: 22px 28px 42px 28px;
-  color: #fff;
-  background: linear-gradient(135deg, #1e3c72 0%, #2a5298 50%, #4e54c8 100%);
-  box-shadow: 0 4px 20px rgba(46, 82, 182, 0.25);
+  border-radius: 18px;
   overflow: hidden;
-  &::before {
-    content: '';
-    position: absolute; inset: 0;
-    background: radial-gradient(circle at 85% 20%, rgba(255,255,255,0.15) 0, transparent 40%),
-                radial-gradient(circle at 10% 80%, rgba(255,255,255,0.1) 0, transparent 40%);
-    pointer-events: none;
-  }
-}
-.hero-left { position: relative; z-index: 1; }
-.hero-title { font-size: 24px; font-weight: 700; letter-spacing: 1px; }
-.hero-sub { margin-top: 6px; font-size: 14px; opacity: 0.85; }
-
-.hero-right {
-  position: absolute; top: 22px; right: 28px;
-  display: flex; gap: 28px;
-  z-index: 1;
-}
-.hero-stat { text-align: right; }
-.hero-stat-value { font-size: 28px; font-weight: 700; letter-spacing: 1px; }
-.hero-symbol { font-size: 18px; margin-right: 2px; }
-.hero-stat-label { font-size: 12px; opacity: 0.85; margin-top: 2px; }
-
-.hero-foot {
-  position: absolute; bottom: 10px; left: 28px;
-  display: flex; gap: 10px; font-size: 12px; opacity: 0.9;
-  z-index: 1;
-}
-.hero-foot-divider { opacity: 0.5; }
-
-.kpi-row { margin-top: 4px; }
-.kpi-card {
-  border-radius: 8px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
-  transition: transform 0.2s, box-shadow 0.2s;
-  border: none;
-  :deep(.el-card__body) { padding: 14px 16px; }
-  &:hover { transform: translateY(-2px); box-shadow: 0 6px 18px rgba(0, 0, 0, 0.12); }
-}
-.kpi-inner { display: flex; align-items: center; gap: 12px; }
-.kpi-icon {
-  width: 46px; height: 46px; border-radius: 10px;
-  display: flex; align-items: center; justify-content: center;
-  flex-shrink: 0;
-}
-.kpi-body { flex: 1; }
-.kpi-value { font-size: 22px; font-weight: 700; color: #303133; line-height: 1.2; }
-.kpi-symbol { font-size: 14px; margin-right: 2px; }
-.kpi-label { font-size: 12px; color: #909399; margin-top: 2px; }
-.kpi-trend { font-size: 11px; margin-top: 3px; display: inline-flex; align-items: center; gap: 2px; }
-.kpi-trend.up { color: #67C23A; }
-.kpi-trend.down { color: #F56C6C; }
-
-.section {
   background: #fff;
-  border-radius: 8px;
-  padding: 16px 18px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+  border: 1px solid var(--app-border);
+  box-shadow: var(--app-shadow-sm);
 }
-.section-title { font-size: 16px; font-weight: 600; color: #303133; margin-bottom: 12px; padding-left: 10px; border-left: 3px solid #409EFF; }
-
-.parks-grid {
+.hero__bg {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(1200px 320px at 85% -10%, rgba(47,111,255,0.14), transparent 60%),
+    radial-gradient(800px 260px at -10% 110%, rgba(111,92,255,0.09), transparent 60%);
+  pointer-events: none;
+}
+.hero__inner {
+  position: relative;
+  padding: 28px 32px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+}
+.hero__copy { max-width: 42%; }
+.hero__eyebrow {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  color: var(--app-text-3);
+  margin-bottom: 10px;
+}
+.hero__title {
+  margin: 0 0 10px;
+  font-size: 24px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--app-text-1);
+}
+.hero__desc {
+  margin: 0;
+  color: var(--app-text-2);
+  font-size: 13px;
+  line-height: 1.7;
+}
+.hero__live {
+  background: rgba(255,255,255,0.72);
+  backdrop-filter: blur(14px);
+  border: 1px solid var(--app-border);
+  border-radius: 14px;
+  padding: 18px 22px;
+  min-width: 380px;
+}
+.hero__live-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+.hero__live-dot {
+  width: 8px; height: 8px; border-radius: 999px;
+  background: var(--app-success);
+  box-shadow: 0 0 0 4px rgba(43,191,138,0.18);
+  animation: livePulse 2s ease-in-out infinite;
+}
+.hero__live-label {
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  color: var(--app-text-2);
+}
+.hero__live-grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 10px;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 14px 22px;
 }
-.park-card {
-  display: flex; align-items: center; gap: 10px;
-  padding: 10px 12px;
-  border: 1px solid #f0f2f5;
-  border-radius: 8px;
-  transition: transform 0.2s, box-shadow 0.2s;
-  cursor: pointer;
-  &:hover { transform: translateY(-2px); box-shadow: 0 4px 14px rgba(0,0,0,0.08); }
+.hero__live-cell { line-height: 1.15; }
+.hero__live-k {
+  font-size: 11px;
+  color: var(--app-text-3);
+  letter-spacing: 0.02em;
+  margin-bottom: 4px;
 }
-.park-gauge { width: 56px; height: 56px; flex-shrink: 0; }
-.park-mini { width: 100%; height: 100%; }
-.park-info { flex: 1; min-width: 0; }
-.park-name { font-size: 13px; font-weight: 600; color: #303133; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.park-sub { margin-top: 2px; font-size: 11px; color: #909399; }
-.park-sub .up { color: #67C23A; }
-.park-sub .down { color: #F56C6C; }
+.hero__live-v {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--app-text-1);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+}
+.hero__live-unit {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--app-text-3);
+  margin-left: 3px;
+}
+.hero__live-chg {
+  font-size: 11px;
+  color: var(--app-text-3);
+  margin-top: 2px;
+}
+.hero__live-chg--up   { color: var(--app-success); font-weight: 600; }
+.hero__live-chg--down { color: var(--app-danger);  font-weight: 600; }
 
-.events-bar {
-  margin-top: 14px;
-  border-top: 1px dashed #ebeef5;
-  padding-top: 12px;
-  overflow: hidden;
-  white-space: nowrap;
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 16px;
 }
-.events-scroll {
-  overflow: hidden;
+@media (max-width: 1400px) {
+  .stats-grid { grid-template-columns: repeat(3, 1fr); }
 }
-.events-track {
-  display: inline-block;
-  padding-left: 100%;
-  animation: marquee linear infinite;
-  white-space: nowrap;
+@media (max-width: 900px) {
+  .stats-grid { grid-template-columns: repeat(2, 1fr); }
 }
-@keyframes marquee {
-  from { transform: translateX(0); }
-  to { transform: translateX(-50%); }
+
+.stat-card {
+  background: #fff;
+  border: 1px solid var(--app-border);
+  border-radius: 14px;
+  padding: 16px 18px;
+  box-shadow: var(--app-shadow-sm);
+  transition: transform var(--app-transition), border-color var(--app-transition), box-shadow var(--app-transition);
 }
-.event {
+.stat-card--link { cursor: pointer; }
+.stat-card--link:hover {
+  transform: translateY(-2px);
+  border-color: var(--app-accent-line);
+  box-shadow: var(--app-shadow-md);
+}
+.stat-card__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+.stat-card__label {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--app-text-2);
   display: inline-flex; align-items: center; gap: 6px;
-  margin-right: 40px;
+}
+.stat-card__goto { font-size: 12px; color: var(--app-text-4); }
+.stat-card__ico {
+  width: 32px; height: 32px;
+  border-radius: 9px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 15px;
+}
+.stat-card__value {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--app-text-1);
+  letter-spacing: -0.01em;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.15;
+  margin-bottom: 8px;
+}
+.stat-card__sub {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11.5px;
+  color: var(--app-text-3);
+}
+.stat-card__tag {
+  display: inline-flex;
+  align-items: center;
+  height: 18px;
+  padding: 0 8px;
+  border-radius: 999px;
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+.stat-card__tag--up   { background: rgba(43,191,138,0.1);  color: var(--app-success); }
+.stat-card__tag--down { background: rgba(239,100,100,0.1);  color: var(--app-danger); }
+.stat-card__tag--flat { background: rgba(139,144,156,0.1); color: var(--app-text-3); }
+
+.panels {
+  display: grid;
+  grid-template-columns: 1.6fr 1fr;
+  grid-auto-rows: auto;
+  gap: 16px;
+}
+.panel {
+  background: #fff;
+  border: 1px solid var(--app-border);
+  border-radius: 14px;
+  padding: 20px 22px;
+  box-shadow: var(--app-shadow-sm);
+  display: flex; flex-direction: column;
+  min-width: 0;
+}
+.panel__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+.panel__title {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--app-text-1);
+}
+.panel__title-sub {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--app-text-3);
+}
+.panel__dot {
+  width: 6px; height: 6px; border-radius: 999px;
+  background: var(--app-accent);
+  box-shadow: 0 0 0 3px var(--app-accent-soft);
+}
+.panel__legend {
+  display: inline-flex; gap: 14px;
+  font-size: 11px; color: var(--app-text-3);
+}
+.panel__legend span { display: inline-flex; align-items: center; gap: 6px; }
+.panel__legend i {
+  width: 8px; height: 8px; border-radius: 999px;
+  display: inline-block;
+}
+.panel__chart { height: 260px; width: 100%; flex: 1; min-height: 220px; }
+.panel__chart--pie { height: 260px; }
+
+.panel--lg:nth-child(3) { grid-column: 1 / 2; }
+.panel--sm:nth-child(4) { grid-column: 2 / 3; }
+
+@media (max-width: 1100px) {
+  .panels { grid-template-columns: 1fr; }
+}
+
+.live-rows {
+  display: flex; flex-direction: column;
+  gap: 2px;
+  max-height: 320px; overflow: auto;
+}
+.live-row {
+  display: grid;
+  grid-template-columns: 130px 74px 1fr 110px;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 2px;
+  border-bottom: 1px dashed var(--app-border);
+  font-size: 12.5px;
+}
+.live-row:last-child { border-bottom: none; }
+.live-row__plate {
+  font-family: "SF Mono", ui-monospace, Menlo, Consolas, monospace;
+  font-weight: 600;
+  color: var(--app-text-1);
+  letter-spacing: 0.02em;
+}
+.live-row__pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 20px;
+  border-radius: 999px;
+  padding: 0 10px;
+  font-size: 10.5px;
+  font-weight: 600;
+}
+.pill--vip    { background: rgba(47,111,255,0.08);  color: var(--app-accent); }
+.pill--month  { background: rgba(111,92,255,0.1);  color: #6f5cff; }
+.pill--temp   { background: rgba(240,168,74,0.12); color: var(--app-warn); }
+.pill--ev     { background: rgba(43,191,138,0.1);  color: var(--app-success); }
+.live-row__park { color: var(--app-text-2); }
+.live-row__time { color: var(--app-text-3); font-size: 11.5px; font-variant-numeric: tabular-nums; }
+
+.park-bars { display: flex; flex-direction: column; gap: 14px; }
+.park-bar__label {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+.park-bar__name { font-size: 12px; font-weight: 600; color: var(--app-text-1); }
+.park-bar__nums { font-size: 11px; color: var(--app-text-3); font-variant-numeric: tabular-nums; }
+.park-bar__track {
+  width: 100%;
+  height: 6px;
+  background: #f1f2f5;
+  border-radius: 999px;
+  overflow: hidden;
+}
+.park-bar__fill {
+  height: 100%;
+  border-radius: 999px;
+  transition: width var(--app-transition);
+}
+
+.quick-bar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 14px 18px;
+  background: #fff;
+  border: 1px solid var(--app-border);
+  border-radius: 14px;
+  box-shadow: var(--app-shadow-sm);
+}
+.quick-bar__tip {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  color: var(--app-text-3);
+  padding: 0 10px;
+  border-right: 1px dashed var(--app-border-strong);
+  margin-right: 4px;
+}
+.quick-bar__items {
+  display: flex; flex-wrap: wrap; gap: 10px; flex: 1;
+}
+.quick-bar__btn {
+  all: unset;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  height: 38px;
+  padding: 0 14px 0 8px;
+  border-radius: 999px;
+  background: #fafbfc;
+  border: 1px solid var(--app-border);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--app-text-1);
+  transition: transform var(--app-transition), border-color var(--app-transition), background var(--app-transition);
+}
+.quick-bar__btn:hover {
+  transform: translateY(-1px);
+  background: #fff;
+  border-color: var(--app-accent-line);
+}
+.quick-bar__ico {
+  width: 22px; height: 22px;
+  border-radius: 999px;
+  display: flex; align-items: center; justify-content: center;
   font-size: 12px;
 }
-.event-dot {
-  display: inline-block;
-  width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+.quick-bar__arrow {
+  font-size: 12px;
+  color: var(--app-text-4);
+  margin-left: 2px;
 }
-.dot-in { background: #67C23A; box-shadow: 0 0 6px rgba(103,194,58,0.7); }
-.dot-warn { background: #E6A23C; box-shadow: 0 0 6px rgba(230,162,60,0.7); }
-.dot-err { background: #F56C6C; box-shadow: 0 0 6px rgba(245,108,108,0.7); }
-.event-time { color: #909399; font-family: Consolas, monospace; }
-.text-in { color: #303133; }
-.text-warn { color: #E6A23C; }
-.text-err { color: #F56C6C; }
-
-.charts-row { margin-top: 2px; }
-.chart-card {
-  border-radius: 8px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
-  border: none;
-  :deep(.el-card__header) { padding: 12px 18px; border-bottom: 1px solid #ebeef5; }
-}
-.chart-title { font-size: 14px; font-weight: 600; color: #303133; }
 </style>

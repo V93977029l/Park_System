@@ -349,7 +349,7 @@ const beforeAvatarUpload: UploadProps['beforeUpload'] = (file) => {
     ElMessage.error('图片不能超过 5MB！')
     return false
   }
-  form.picture = URL.createObjectURL(file.raw as File)
+  form.picture = URL.createObjectURL(file as File)
   return false
 }
 

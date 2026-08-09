@@ -34,21 +34,21 @@ export const users = {
   }
 }
 export const roles = {
-  queryList(pageNo: string, pageSize: string, roleName: string) {
+  queryList(pageNo: string | number, pageSize: string | number, roleName: string) {
     return http.get(
       '/role/queryList?pageNo=' + pageNo + '&pageSize=' + pageSize + '&roleName=' + roleName
     )
   },
-  update(param: string) {
+  update(param: any) {
     return http.put('/role/edit', param)
   },
-  add(param: string) {
+  add(param: any) {
     return http.post('/role/add', param)
   },
-  queryById(id: String) {
-    return http.get('/role/queryById' + id)
+  queryById(id: string | number) {
+    return http.get('/role/queryById?id=' + id)
   },
-  deleteUser(id: String) {
-    return http.delete('/role/deleteById' + id)
+  deleteUser(id: string | number) {
+    return http.delete('/role/deleteById?id=' + id)
   }
 }
