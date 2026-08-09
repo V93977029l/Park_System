@@ -107,32 +107,31 @@
     <!-- 悬浮球：环形扇区放射菜单 -->
     <div class="float-fan" :style="{ transform: `translate(${drag.x}px, ${drag.y}px)` }">
       <svg class="float-fan__svg" viewBox="0 0 340 340">
-        <path
+        <g
           v-for="(item, i) in floatItems"
           :key="item.path"
-          class="float-fan__arc"
-          :class="{ 'is-open': floatOpen, 'is-active': isActive(item.path), 'is-round': BLADE_STYLE === 'round' }"
-          :d="sectorD(i)"
+          class="float-fan__leaf"
+          :class="{ 'is-open': floatOpen, 'is-active': isActive(item.path) }"
           :style="{
             '--fd': (i * 40) + 'ms',
-            '--sc': arcScale(i),
-            '--blade-style': BLADE_STYLE
+            '--sc': arcScale(i)
           }"
           @mouseenter="hovered = i"
           @mouseleave="hovered = -1"
           @click="goFloat(item.path)"
-        />
+        >
+          <!-- 底层：蓝色圆角描边层（仅激活态可见） -->
+          <path class="float-fan__arc float-fan__arc--outline" :d="sectorD(i)" />
+          <!-- 顶层：白色圆角填充层 -->
+          <path class="float-fan__arc float-fan__arc--fill" :d="sectorD(i)" />
+        </g>
       </svg>
 
       <button
         v-for="(item, i) in floatItems"
         :key="item.path"
         class="float-fan__label"
-        :class="{
-          'is-open': floatOpen,
-          'is-active': isActive(item.path),
-          'is-hover': hovered === i
-        }"
+        :class="{ 'is-open': floatOpen, 'is-active': isActive(item.path) }"
         :style="labelPos(i)"
         @mouseenter="hovered = i"
         @mouseleave="hovered = -1"
@@ -185,71 +184,33 @@ const floatItems = [
 const FC = 170
 const R_IN = 84
 const R_OUT = 150
-const CORNER = 12 // 四角几何圆角半径
 const STEP = 360 / floatItems.length
 const GAP = 12
 const d2r = (d: number) => (d * Math.PI) / 180
-// 极坐标转笛卡尔
-const pol = (r: number, deg: number) => ({
-  x: FC + r * Math.cos(d2r(deg)),
-  y: FC + r * Math.sin(d2r(deg))
-})
-// —— 两种扇形实现，可切换 ——
-// BLADE_STYLE: 'geo' 几何圆角（四角 Q 贝塞尔圆弧，细描边，边缘利落）
-//              'round' 粗描边圆头（stroke-linecap round 外扩圆角，边缘圆润）
-const BLADE_STYLE: 'geo' | 'round' = 'geo'
-
-// 实现一：几何圆角环形扇区（四条边在四角用二次贝塞尔圆弧圆角过渡）
-const sectorGeo = (i: number) => {
+// 真正的环形扇区（有面积的闭合叶片）：两条径向直边 + 内弧 + 外弧
+const sectorD = (i: number) => {
   const a0 = i * STEP + GAP / 2
   const a1 = (i + 1) * STEP - GAP / 2
-  const ao = (CORNER / R_OUT) * (180 / Math.PI) // 外角角度偏移（度）
-  const ai = (CORNER / R_IN) * (180 / Math.PI)  // 内角角度偏移（度）
-  const A0 = pol(R_OUT - CORNER, a0)
-  const B0 = pol(R_OUT, a0 + ao)
-  const C1 = pol(R_OUT, a1 - ao)
-  const D1 = pol(R_OUT - CORNER, a1)
-  const E1 = pol(R_IN + CORNER, a1)
-  const F1 = pol(R_IN, a1 - ai)
-  const G0 = pol(R_IN, a0 + ai)
-  const H0 = pol(R_IN + CORNER, a0)
+  const o0 = { x: FC + R_OUT * Math.cos(d2r(a0)), y: FC + R_OUT * Math.sin(d2r(a0)) }
+  const o1 = { x: FC + R_OUT * Math.cos(d2r(a1)), y: FC + R_OUT * Math.sin(d2r(a1)) }
+  const i0 = { x: FC + R_IN * Math.cos(d2r(a0)), y: FC + R_IN * Math.sin(d2r(a0)) }
+  const i1 = { x: FC + R_IN * Math.cos(d2r(a1)), y: FC + R_IN * Math.sin(d2r(a1)) }
+  // 外弧 a0→a1 → 直边到内 → 内弧 a1→a0 → 直边闭合
   return [
-    `M ${A0.x.toFixed(1)} ${A0.y.toFixed(1)}`,
-    `Q ${pol(R_OUT, a0).x.toFixed(1)} ${pol(R_OUT, a0).y.toFixed(1)} ${B0.x.toFixed(1)} ${B0.y.toFixed(1)}`,
-    `A ${R_OUT} ${R_OUT} 0 0 1 ${C1.x.toFixed(1)} ${C1.y.toFixed(1)}`,
-    `Q ${pol(R_OUT, a1).x.toFixed(1)} ${pol(R_OUT, a1).y.toFixed(1)} ${D1.x.toFixed(1)} ${D1.y.toFixed(1)}`,
-    `L ${E1.x.toFixed(1)} ${E1.y.toFixed(1)}`,
-    `Q ${pol(R_IN, a1).x.toFixed(1)} ${pol(R_IN, a1).y.toFixed(1)} ${F1.x.toFixed(1)} ${F1.y.toFixed(1)}`,
-    `A ${R_IN} ${R_IN} 0 0 0 ${G0.x.toFixed(1)} ${G0.y.toFixed(1)}`,
-    `Q ${pol(R_IN, a0).x.toFixed(1)} ${pol(R_IN, a0).y.toFixed(1)} ${H0.x.toFixed(1)} ${H0.y.toFixed(1)}`,
-    `L ${A0.x.toFixed(1)} ${A0.y.toFixed(1)}`,
+    `M ${o0.x.toFixed(1)} ${o0.y.toFixed(1)}`,
+    `A ${R_OUT} ${R_OUT} 0 0 1 ${o1.x.toFixed(1)} ${o1.y.toFixed(1)}`,
+    `L ${i1.x.toFixed(1)} ${i1.y.toFixed(1)}`,
+    `A ${R_IN} ${R_IN} 0 0 0 ${i0.x.toFixed(1)} ${i0.y.toFixed(1)}`,
     'Z'
   ].join(' ')
 }
-
-// 实现二：粗描边圆头环形扇区（stroke-linecap round 外扩圆角）
-const sectorRound = (i: number) => {
-  const a0 = i * STEP + GAP / 2
-  const a1 = (i + 1) * STEP - GAP / 2
-  const o0 = pol(R_OUT, a0)
-  const o1 = pol(R_OUT, a1)
-  return `M ${o0.x.toFixed(1)} ${o0.y.toFixed(1)} A ${R_OUT} ${R_OUT} 0 0 1 ${o1.x.toFixed(1)} ${o1.y.toFixed(1)}`
-}
-
-const sectorD = (i: number) => (BLADE_STYLE === 'geo' ? sectorGeo(i) : sectorRound(i))
-// 每个叶片中心（内外径中值）放图标文字；hover 时外移并放大
+// 每个叶片中心（内外径中值）放图标文字
 const labelPos = (i: number) => {
   const mid = i * STEP + STEP / 2
-  const h = hovered.value
-  let r = (R_IN + R_OUT) / 2
-  let s = 1
-  if (h !== -1) {
-    const g = Math.abs(i - h)
-    if (g === 0)      { r += 18; s = 1.14 }
-    else if (g === 1) { r += 9;  s = 1.06 }
-  }
-  const p = pol(r, mid)
-  return { left: p.x.toFixed(1) + 'px', top: p.y.toFixed(1) + 'px', '--fd': i * 40 + 'ms', '--sc': s }
+  const r = (R_IN + R_OUT) / 2
+  const x = FC + r * Math.cos(d2r(mid))
+  const y = FC + r * Math.sin(d2r(mid))
+  return { left: x.toFixed(1) + 'px', top: y.toFixed(1) + 'px', '--fd': i * 40 + 'ms' }
 }
 // hover 缩放：当前叶片放大、相邻略放大（灵动挤出感）
 const arcScale = (i: number) => {
@@ -515,36 +476,42 @@ const onUserCmd = (cmd: string) => {
   z-index: 71;
 }
 
-.float-fan__arc {
-  fill: rgba(255,255,255,0.95);
-  stroke: var(--app-border);
-  stroke-width: 1.5;
-  filter: drop-shadow(0 4px 12px rgba(0,0,0,0.08));
+.float-fan__leaf {
   cursor: pointer;
   opacity: 0;
   transform: scale(0);
   transform-origin: 170px 170px;
   transition:
     transform 320ms cubic-bezier(0.22,1,0.36,1) var(--fd, 0ms),
-    opacity 200ms ease var(--fd, 0ms),
-    stroke var(--app-transition);
+    opacity 200ms ease var(--fd, 0ms);
 }
-/* 粗描边圆头风格：无填充，宽圆头描边外扩成圆角 */
-.float-fan__arc.is-round {
-  fill: none;
-  stroke: rgba(255,255,255,0.95);
-  stroke-width: 54;
-  stroke-linecap: round;
-}
-.float-fan__arc.is-open {
+.float-fan__leaf.is-open {
   opacity: 1;
   transform: scale(var(--sc, 1));
 }
-.float-fan__arc.is-active {
-  stroke: rgba(47,111,255,0.55);
+
+/* 两层同圆心：底层蓝色描边外扩 14px，顶层白色外扩 10px，
+   差值形成一圈 4px 蓝色圆角描边；底层仅激活态显示 */
+.float-fan__arc {
+  fill: none;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+  transition: opacity var(--app-transition);
 }
-.float-fan__arc.is-round.is-active {
-  stroke: rgba(47,111,255,0.35);
+.float-fan__arc--outline {
+  fill: #bcd4ff;
+  stroke: #bcd4ff;
+  stroke-width: 28;
+  opacity: 0;
+}
+.float-fan__arc--fill {
+  fill: rgba(255,255,255,0.95);
+  stroke: rgba(255,255,255,0.95);
+  stroke-width: 20;
+  filter: drop-shadow(0 4px 12px rgba(0,0,0,0.08));
+}
+.float-fan__leaf.is-active .float-fan__arc--outline {
+  opacity: 1;
 }
 
 .float-fan__label {
@@ -571,14 +538,13 @@ const onUserCmd = (cmd: string) => {
 }
 .float-fan__label.is-open {
   opacity: 1;
-  transform: translate(-50%, -50%) scale(var(--sc, 1));
+  transform: translate(-50%, -50%) scale(1);
 }
-.float-fan__label.is-active,
-.float-fan__label.is-hover {
+.float-fan__label.is-active {
   color: var(--app-accent);
 }
-.float-fan__label.is-hover .float-fan__label-ico { color: var(--app-accent); }
-.float-fan__label-ico { font-size: 18px; filter: drop-shadow(0 1px 1px rgba(255,255,255,0.8)); transition: color var(--app-transition); }
+.float-fan__label:hover { color: var(--app-accent); }
+.float-fan__label-ico { font-size: 18px; filter: drop-shadow(0 1px 1px rgba(255,255,255,0.8)); }
 .float-fan__label-txt {
   font-size: 10.5px; font-weight: 700; letter-spacing: 0.02em;
   color: var(--app-text-1);
