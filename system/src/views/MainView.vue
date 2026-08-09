@@ -131,7 +131,7 @@
         v-for="(item, i) in floatItems"
         :key="item.path"
         class="float-fan__label"
-        :class="{ 'is-open': floatOpen, 'is-active': isActive(item.path) }"
+        :class="{ 'is-open': floatOpen, 'is-active': isActive(item.path), 'is-hover': isHover(i) }"
         :style="labelPos(i)"
         @mouseenter="hovered = i"
         @mouseleave="hovered = -1"
@@ -204,13 +204,15 @@ const sectorD = (i: number) => {
     'Z'
   ].join(' ')
 }
-// 每个叶片中心（内外径中值）放图标文字
+// 每个叶片中心（内外径中值）放图标文字。
+// 图标定位在圆心，用 translate 平移到叶片中心，偏移量乘 scale 与扇形同步扩散
 const labelPos = (i: number) => {
   const mid = i * STEP + STEP / 2
   const r = (R_IN + R_OUT) / 2
-  const x = FC + r * Math.cos(d2r(mid))
-  const y = FC + r * Math.sin(d2r(mid))
-  return { left: x.toFixed(1) + 'px', top: y.toFixed(1) + 'px', '--fd': i * 40 + 'ms' }
+  const s = arcScale(i)
+  const tx = (r * s) * Math.cos(d2r(mid))
+  const ty = (r * s) * Math.sin(d2r(mid))
+  return { '--tx': tx.toFixed(1) + 'px', '--ty': ty.toFixed(1) + 'px', '--fd': i * 40 + 'ms' }
 }
 // hover 缩放：当前叶片放大、相邻略放大（灵动挤出感）
 const arcScale = (i: number) => {
@@ -221,6 +223,7 @@ const arcScale = (i: number) => {
   if (g === 1) return 1.05
   return 1
 }
+const isHover = (i: number) => hovered.value === i
 const toggleFloat = () => { floatOpen.value = !floatOpen.value }
 const closeFloat = () => { floatOpen.value = false; hovered.value = -1 }
 const goFloat = (p: string) => { closeFloat(); router.push(p) }
@@ -436,24 +439,27 @@ const onUserCmd = (cmd: string) => {
   /* 内圈强、外圈弱的径向白雾 */
   background: radial-gradient(
     circle at var(--cx, 82%) var(--cy, 84%),
-    rgba(255,255,255,0.32) 0%,
-    rgba(255,255,255,0.12) 30%,
-    rgba(255,255,255,0) 62%
+    rgba(255,255,255,0.36) 0%,
+    rgba(255,255,255,0.20) 20%,
+    rgba(255,255,255,0.06) 30%,
+    rgba(255,255,255,0) 38%
   );
   /* 边缘高光：内阴影模拟玻璃切边反光 */
   box-shadow: inset 0 0 80px rgba(255,255,255,0.5);
-  /* 径向蒙版：从中心(悬浮球)到边缘磨砂强度递减 */
+  /* 径向蒙版：范围内强磨砂，到边缘快速曲线骤降（多段近似缓动，非直线） */
   -webkit-mask-image: radial-gradient(
     circle at var(--cx, 82%) var(--cy, 84%),
     #000 0%,
-    rgba(0,0,0,0.9) 26%,
-    rgba(0,0,0,0) 66%
+    rgba(0,0,0,0.97) 24%,
+    rgba(0,0,0,0.55) 33%,
+    rgba(0,0,0,0) 38%
   );
   mask-image: radial-gradient(
     circle at var(--cx, 82%) var(--cy, 84%),
     #000 0%,
-    rgba(0,0,0,0.9) 26%,
-    rgba(0,0,0,0) 66%
+    rgba(0,0,0,0.97) 24%,
+    rgba(0,0,0,0.55) 33%,
+    rgba(0,0,0,0) 38%
   );
 }
 /* 磨砂颗粒噪点纹理 */
@@ -499,9 +505,9 @@ const onUserCmd = (cmd: string) => {
   transition: opacity var(--app-transition);
 }
 .float-fan__arc--outline {
-  fill: #bcd4ff;
-  stroke: #bcd4ff;
-  stroke-width: 28;
+  fill: #aac6ff;
+  stroke: #aac6ff;
+  stroke-width: 23;
   opacity: 0;
 }
 .float-fan__arc--fill {
@@ -516,9 +522,8 @@ const onUserCmd = (cmd: string) => {
 
 .float-fan__label {
   position: absolute;
-  left: 0;
-  top: 0;
-  transform: translate(-50%, -50%);
+  left: 170px;
+  top: 170px;
   z-index: 72;
   display: flex;
   align-items: center;
@@ -530,7 +535,8 @@ const onUserCmd = (cmd: string) => {
   color: var(--app-text-2);
   cursor: pointer;
   opacity: 0;
-  transform: translate(-50%, -50%) scale(0);
+  /* 以圆心为原点平移到叶片中心；偏移量随 hover 增大 → 与扇形同步向外扩散 */
+  transform: translate(-50%, -50%) translate(var(--tx, 0), var(--ty, 0));
   transition:
     transform 300ms cubic-bezier(0.22,1,0.36,1) var(--fd, 0ms),
     opacity 200ms ease var(--fd, 0ms),
@@ -538,19 +544,24 @@ const onUserCmd = (cmd: string) => {
 }
 .float-fan__label.is-open {
   opacity: 1;
-  transform: translate(-50%, -50%) scale(1);
 }
 .float-fan__label.is-active {
   color: var(--app-accent);
 }
-.float-fan__label:hover { color: var(--app-accent); }
-.float-fan__label-ico { font-size: 18px; filter: drop-shadow(0 1px 1px rgba(255,255,255,0.8)); }
+.float-fan__label.is-hover { color: var(--app-accent); }
+.float-fan__label-ico {
+  font-size: 18px;
+  filter: drop-shadow(0 1px 1px rgba(255,255,255,0.8));
+  transition: color var(--app-transition);
+}
 .float-fan__label-txt {
   font-size: 10.5px; font-weight: 700; letter-spacing: 0.02em;
   color: var(--app-text-1);
   white-space: nowrap;
   text-shadow: 0 1px 2px rgba(255,255,255,0.9);
+  transition: color var(--app-transition);
 }
+.float-fan__label.is-hover .float-fan__label-txt { color: var(--app-accent); }
 
 .float-fan__toggle {
   position: absolute;
